@@ -4,10 +4,12 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import Base, engine, sync_database_schema
+from app.rate_limiting import RateLimitHeadersMiddleware
 from app.routers import auth, dashboard, transactions, users
 
 settings = get_settings()
 app = FastAPI(title=settings.project_name)
+app.add_middleware(RateLimitHeadersMiddleware)
 
 
 @app.on_event("startup")

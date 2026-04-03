@@ -5,6 +5,14 @@ from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.dependencies import DbSession, get_current_user, require_roles
 from app.models.user import User, UserRole
+from app.rate_limiting import (
+    CREATE_TRANSACTION_LIMIT,
+    DELETE_TRANSACTION_LIMIT,
+    LIST_TRANSACTIONS_LIMIT,
+    READ_TRANSACTION_LIMIT,
+    UPDATE_TRANSACTION_LIMIT,
+    create_rate_limiter,
+)
 from app.schemas.transaction import PaginatedTransactions, TransactionCreate, TransactionFilterParams, TransactionRead, TransactionUpdate
 from app.services.transaction_service import (
     create_transaction,
@@ -21,6 +29,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 @router.post("", response_model=TransactionRead, status_code=status.HTTP_201_CREATED)
 def create_transaction_endpoint(
     payload: TransactionCreate,
+    _: Annotated[None, Depends(create_rate_limiter(CREATE_TRANSACTION_LIMIT, key_strategy="user"))],
     db: DbSession,
     current_user: Annotated[User, Depends(require_roles(UserRole.admin))],
 ) -> TransactionRead:
@@ -30,6 +39,7 @@ def create_transaction_endpoint(
 @router.get("", response_model=PaginatedTransactions)
 def read_transactions(
     db: DbSession,
+    _: Annotated[None, Depends(create_rate_limiter(LIST_TRANSACTIONS_LIMIT, key_strategy="user"))],
     current_user: Annotated[User, Depends(get_current_user)],
     type: str | None = Query(default=None),
     category: str | None = Query(default=None),
@@ -54,6 +64,7 @@ def read_transactions(
 def read_transaction(
     transaction_id: int,
     db: DbSession,
+    _: Annotated[None, Depends(create_rate_limiter(READ_TRANSACTION_LIMIT, key_strategy="user"))],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TransactionRead:
     transaction = get_transaction_or_404(db, transaction_id)
@@ -65,6 +76,7 @@ def read_transaction(
 def update_transaction_endpoint(
     transaction_id: int,
     payload: TransactionUpdate,
+    _: Annotated[None, Depends(create_rate_limiter(UPDATE_TRANSACTION_LIMIT, key_strategy="user"))],
     db: DbSession,
     current_user: Annotated[User, Depends(require_roles(UserRole.admin))],
 ) -> TransactionRead:
@@ -76,6 +88,7 @@ def update_transaction_endpoint(
 def delete_transaction_endpoint(
     transaction_id: int,
     db: DbSession,
+    _: Annotated[None, Depends(create_rate_limiter(DELETE_TRANSACTION_LIMIT, key_strategy="user"))],
     current_user: Annotated[User, Depends(require_roles(UserRole.admin))],
 ) -> Response:
     transaction = get_transaction_or_404(db, transaction_id)
