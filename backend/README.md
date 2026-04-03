@@ -230,7 +230,62 @@ For automated tests, the shared storage exposes a `reset()` method so a test can
 - In-memory storage avoids introducing infrastructure complexity for the assessment.
 - The storage is thread-safe for a single-process deployment and has cleanup logic to avoid unbounded growth.
 - The request state is used to share user and rate limit metadata between dependencies and middleware without changing route response models.
-- No new third-party dependencies were required for this implementation.
+- No new runtime dependencies were required for rate limiting; test tooling was added separately under `requirements.txt`.
+
+## Testing
+
+The project includes an async pytest suite under `tests/` that uses an isolated in-memory SQLite database. Production PostgreSQL settings are not used during test runs.
+
+### Test Setup
+
+- Test configuration lives in `pytest.ini`.
+- Shared fixtures, helpers, seeded users, dependency overrides, and rate-limit resets live in `tests/conftest.py`.
+- Tests override `get_db` so every request uses the isolated SQLite session.
+- `.env.test` documents the test-specific settings used by the suite.
+
+### Install Test Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run Tests
+
+Run the full suite:
+
+```bash
+pytest
+```
+
+Run a specific file:
+
+```bash
+pytest tests/test_auth.py
+```
+
+Run a single test:
+
+```bash
+pytest tests/test_auth.py::test_register_success_creates_user
+```
+
+Run with coverage:
+
+```bash
+pytest --cov=app tests/
+```
+
+Show print statements:
+
+```bash
+pytest -s
+```
+
+Run in verbose mode:
+
+```bash
+pytest -v
+```
 
 ## Manual Test Flow
 

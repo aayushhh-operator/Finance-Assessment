@@ -2,6 +2,8 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 
 from app.dependencies import DbSession, get_current_user, require_roles
 from app.models.user import User, UserRole
@@ -48,14 +50,18 @@ def read_transactions(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
 ) -> PaginatedTransactions:
-    filters = TransactionFilterParams(
-        type=type,
-        category=category,
-        start_date=start_date,
-        end_date=end_date,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        filters = TransactionFilterParams(
+            type=type,
+            category=category,
+            start_date=start_date,
+            end_date=end_date,
+            page=page,
+            page_size=page_size,
+        )
+    except ValidationError as exc:
+        errors = [{**error, "loc": ("query", *error["loc"])} for error in exc.errors()]
+        raise RequestValidationError(errors) from exc
     items, total = list_transactions(db, filters, current_user)
     return PaginatedTransactions(items=items, total=total, page=filters.page, page_size=filters.page_size)
 
