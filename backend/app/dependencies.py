@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
+from app.exceptions import AuthenticationError
 from app.models.user import User, UserRole
 from app.services.auth_service import decode_token
 from app.services.user_service import get_user_by_email
@@ -39,7 +40,7 @@ def get_current_user(
     if not user:
         raise credentials_error
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user account")
+        raise AuthenticationError("User account is inactive")
     request.state.current_user = user
     return user
 

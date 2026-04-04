@@ -277,3 +277,34 @@ async def test_delete_already_deleted_transaction_returns_404(
     response = await admin_client.delete(f"/api/transactions/{deleted_transaction.id}")
 
     assert response.status_code == 404, f"Deleting an already deleted transaction should return 404, got {response.text}"
+
+
+async def test_pagination_with_large_page_size(admin_client: AsyncClient) -> None:
+    """Page size should be validated against the configured limit."""
+
+    response = await admin_client.get("/api/transactions", params={"page_size": 99999})
+
+    assert response.status_code == 422, f"Large page sizes should be rejected, got {response.text}"
+
+
+async def test_pagination_with_zero_page(admin_client: AsyncClient) -> None:
+    """Page numbers below one should be rejected."""
+
+    response = await admin_client.get("/api/transactions", params={"page": 0})
+
+    assert response.status_code == 422, f"Page=0 should be rejected, got {response.text}"
+
+
+async def test_dashboard_with_no_data(viewer_client: AsyncClient) -> None:
+    """Dashboard summary should return zeroes for empty personal datasets."""
+
+    response = await viewer_client.get("/api/dashboard/summary")
+
+    assert response.status_code == 200, f"Empty dashboard should succeed, got {response.text}"
+    assert response.json() == {
+        "total_income": "0.00",
+        "total_expense": "0.00",
+        "net_balance": "0.00",
+        "transaction_count": 0,
+        "period": "all_time",
+    }, "Empty dashboard response should be fully zeroed"

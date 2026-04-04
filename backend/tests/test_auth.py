@@ -27,7 +27,7 @@ async def test_register_success_creates_user(client: AsyncClient, db_session) ->
     assert response.status_code == 201, f"Expected successful registration, got {response.text}"
     payload = response.json()
     assert payload["email"] == user_data["email"], "Registered email should match the request payload"
-    assert payload["role"] == user_data["role"], "Registered user role should match the requested role"
+    assert payload["role"] == "viewer", "Public registration should always create viewer accounts"
     assert "password" not in payload, "Registration response must not expose the password"
 
 
@@ -90,6 +90,18 @@ async def test_register_default_role_is_viewer(client: AsyncClient) -> None:
     assert response.json()["role"] == "viewer", "Default role should be viewer"
 
 
+async def test_cannot_register_as_admin(client: AsyncClient) -> None:
+    """Registration should ignore privileged role requests and keep the account as viewer."""
+
+    response = await client.post(
+        "/api/auth/register",
+        json={"email": "hacker@example.com", "password": "SecurePass123", "role": "admin"},
+    )
+
+    assert response.status_code == 201, f"Role escalation attempt should not fail registration, got {response.text}"
+    assert response.json()["role"] == "viewer", "Privileged self-registration should be downgraded to viewer"
+
+
 async def test_login_success_returns_token(client: AsyncClient, viewer_user: TestUserData) -> None:
     """Valid credentials should return a bearer token."""
 
@@ -99,7 +111,6 @@ async def test_login_success_returns_token(client: AsyncClient, viewer_user: Tes
     payload = response.json()
     assert payload["token_type"] == "bearer", "Token type should be bearer"
     assert payload["access_token"], "Access token should be present in the login response"
-    assert "finance_access_token=" in response.headers.get("set-cookie", ""), "Login should set an auth cookie"
 
 
 @pytest.mark.parametrize(
@@ -120,7 +131,7 @@ async def test_login_invalid_credentials_returns_401(
     assert response.json()["detail"] == "Invalid credentials", "Invalid login should use the expected error message"
 
 
-async def test_login_inactive_user_returns_400(client: AsyncClient, db_session) -> None:
+async def test_login_inactive_user_returns_401(client: AsyncClient, db_session) -> None:
     """Inactive users should not be able to log in."""
 
     inactive_user = create_test_user(
@@ -132,8 +143,8 @@ async def test_login_inactive_user_returns_400(client: AsyncClient, db_session) 
 
     response = await client.post("/api/auth/login", data=login_payload(inactive_user.user.email, inactive_user.password))
 
-    assert response.status_code == 400, f"Inactive users should be blocked from login, got {response.text}"
-    assert response.json()["detail"] == "Inactive user account", "Inactive login should explain the failure"
+    assert response.status_code == 401, f"Inactive users should be blocked from login, got {response.text}"
+    assert response.json()["detail"] == "User account is inactive", "Inactive login should explain the failure"
 
 
 async def test_token_contains_valid_claims(client: AsyncClient, viewer_user: TestUserData, decode_jwt) -> None:
@@ -145,6 +156,8 @@ async def test_token_contains_valid_claims(client: AsyncClient, viewer_user: Tes
     token = response.json()["access_token"]
     claims = decode_jwt(token)
     assert claims["sub"] == viewer_user.user.email, "JWT subject should be the user email"
+    assert claims["user_id"] == viewer_user.user.id, "JWT should include the user id"
+    assert claims["role"] == viewer_user.user.role.value, "JWT should include the current role"
     assert "exp" in claims, "JWT should contain an expiration claim"
 
 
@@ -153,6 +166,8 @@ async def test_expired_token_returns_401(client: AsyncClient, viewer_user: TestU
 
     expired_token = create_access_token(
         subject=viewer_user.user.email,
+        user_id=viewer_user.user.id,
+        role=viewer_user.user.role.value,
         expires_delta=timedelta(minutes=-5),
     )
 

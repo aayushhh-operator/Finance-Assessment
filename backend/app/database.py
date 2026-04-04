@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -13,26 +13,6 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expi
 
 class Base(DeclarativeBase):
     pass
-
-
-def sync_database_schema() -> None:
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                """
-                ALTER TABLE IF EXISTS transactions
-                ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE
-                """
-            )
-        )
-        connection.execute(
-            text(
-                """
-                CREATE INDEX IF NOT EXISTS ix_transactions_is_deleted
-                ON transactions (is_deleted)
-                """
-            )
-        )
 
 
 def get_db() -> Generator[Session, None, None]:

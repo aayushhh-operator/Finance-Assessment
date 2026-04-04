@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from sqlalchemy import func, select
 
-from app.database import Base, SessionLocal, engine, sync_database_schema
+from app.database import SessionLocal
 from app.models.transaction import Transaction, TransactionType
 from app.models.user import UserRole
 from app.schemas.user import UserCreate
@@ -24,9 +24,6 @@ def seed_users() -> None:
         (Decimal("700.00"), TransactionType.income, "Freelance"),
         (Decimal("150.00"), TransactionType.expense, "Utilities"),
     ]
-
-    Base.metadata.create_all(bind=engine)
-    sync_database_schema()
 
     with SessionLocal() as db:
         created_users = []

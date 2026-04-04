@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.dependencies import DbSession, get_current_user, require_roles
 from app.models.user import User, UserRole
@@ -12,7 +12,7 @@ from app.rate_limiting import (
     create_rate_limiter,
 )
 from app.schemas.user import UserRead, UserRoleUpdate, UserStatusUpdate
-from app.services.user_service import get_user_by_id, list_users, update_user_role, update_user_status
+from app.services.user_service import get_user_by_id_or_404, list_users, update_user_role, update_user_status
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -42,9 +42,7 @@ def change_user_role(
     _: Annotated[None, Depends(create_rate_limiter(CHANGE_USER_ROLE_LIMIT, key_strategy="user"))],
     current_user: Annotated[User, Depends(require_roles(UserRole.admin))],
 ) -> UserRead:
-    target = get_user_by_id(db, user_id)
-    if not target:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    target = get_user_by_id_or_404(db, user_id)
     return update_user_role(db, target, payload.role)
 
 
@@ -56,7 +54,5 @@ def change_user_status(
     _: Annotated[None, Depends(create_rate_limiter(CHANGE_USER_STATUS_LIMIT, key_strategy="user"))],
     current_user: Annotated[User, Depends(require_roles(UserRole.admin))],
 ) -> UserRead:
-    target = get_user_by_id(db, user_id)
-    if not target:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    target = get_user_by_id_or_404(db, user_id)
     return update_user_status(db, current_user, target, payload.is_active)

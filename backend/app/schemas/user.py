@@ -25,6 +25,17 @@ class UserCreate(UserBase):
         return value
 
 
+class PublicUserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if not PASSWORD_PATTERN.match(value):
+            raise ValueError("Password must be at least 8 characters and include at least one letter and one number")
+        return value
+
+
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 

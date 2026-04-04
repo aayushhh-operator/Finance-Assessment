@@ -12,7 +12,7 @@ from app.rate_limiting import (
     create_rate_limiter,
 )
 from app.schemas.dashboard import CategoryBreakdownResponse, MonthlyTrend, RecentTransaction, SummaryResponse
-from app.services.transaction_service import get_category_breakdown, get_monthly_trends, get_recent_transactions, get_summary
+from app.services.dashboard_service import get_category_breakdown, get_monthly_trends, get_recent_activity, get_summary
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -52,4 +52,4 @@ def dashboard_recent_transactions(
     current_user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(default=10, ge=1, le=50),
 ) -> list[RecentTransaction]:
-    return get_recent_transactions(db, current_user, limit)
+    return get_recent_activity(db, current_user, limit)

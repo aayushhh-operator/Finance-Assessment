@@ -134,3 +134,39 @@ async def test_admin_can_manage_everything(
     assert update_response.status_code == 200, f"Admin update should succeed, got {update_response.text}"
     assert delete_response.status_code == 204, f"Admin delete should succeed, got {delete_response.text}"
     assert manage_response.status_code == 200, f"Admin user management should succeed, got {manage_response.text}"
+
+
+async def test_viewer_pagination_total_count_accuracy(
+    viewer_client: AsyncClient,
+    db_session,
+    admin_user: TestUserData,
+    viewer_user: TestUserData,
+) -> None:
+    """Viewer totals should only count rows they are allowed to access."""
+
+    for index in range(50):
+        create_test_transaction(
+            db_session,
+            admin_user.user.id,
+            amount="100.00",
+            type="income",
+            category="Admin Seed",
+            description=f"Admin transaction {index}",
+        )
+
+    for index in range(5):
+        create_test_transaction(
+            db_session,
+            viewer_user.user.id,
+            amount="50.00",
+            type="expense",
+            category="Viewer Seed",
+            description=f"Viewer transaction {index}",
+        )
+
+    response = await viewer_client.get("/api/transactions", params={"page": 1, "page_size": 10})
+
+    assert response.status_code == 200, f"Viewer pagination should succeed, got {response.text}"
+    data = response.json()
+    assert data["total"] == 5, f"Expected viewer total=5 but got {data['total']}"
+    assert len(data["items"]) == 5, "Viewer should only receive their accessible rows"

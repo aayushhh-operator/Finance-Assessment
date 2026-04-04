@@ -1,9 +1,9 @@
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate
+from app.schemas.user import PublicUserCreate, UserCreate
 from app.services.auth_service import get_password_hash
 
 
@@ -22,13 +22,30 @@ def list_users(db: Session) -> list[User]:
 def create_user(db: Session, payload: UserCreate) -> User:
     existing = get_user_by_email(db, payload.email)
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+        raise ConflictError("Email already registered")
 
     user = User(
         email=payload.email,
         hashed_password=get_password_hash(payload.password),
         full_name=payload.full_name,
         role=payload.role,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def register_user(db: Session, payload: PublicUserCreate) -> User:
+    existing = get_user_by_email(db, payload.email)
+    if existing:
+        raise ConflictError("Email already registered")
+
+    user = User(
+        email=payload.email,
+        hashed_password=get_password_hash(payload.password),
+        full_name=payload.full_name,
+        role=UserRole.viewer,
     )
     db.add(user)
     db.commit()
@@ -46,10 +63,17 @@ def update_user_role(db: Session, target_user: User, role: UserRole) -> User:
 
 def update_user_status(db: Session, current_user: User, target_user: User, is_active: bool) -> User:
     if current_user.id == target_user.id and not is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User cannot deactivate themselves")
+        raise BadRequestError("User cannot deactivate themselves")
 
     target_user.is_active = is_active
     db.add(target_user)
     db.commit()
     db.refresh(target_user)
     return target_user
+
+
+def get_user_by_id_or_404(db: Session, user_id: int) -> User:
+    user = get_user_by_id(db, user_id)
+    if user is None:
+        raise NotFoundError("User not found")
+    return user

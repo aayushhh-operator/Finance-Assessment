@@ -283,7 +283,11 @@ def viewer_user(db_session: Session) -> TestUserData:
 def admin_token(admin_user: TestUserData) -> dict[str, str]:
     """Create authorization headers for the admin user."""
 
-    token = create_access_token(subject=admin_user.user.email)
+    token = create_access_token(
+        subject=admin_user.user.email,
+        user_id=admin_user.user.id,
+        role=admin_user.user.role.value,
+    )
     return get_auth_headers(token)
 
 
@@ -291,7 +295,11 @@ def admin_token(admin_user: TestUserData) -> dict[str, str]:
 def analyst_token(analyst_user: TestUserData) -> dict[str, str]:
     """Create authorization headers for the analyst user."""
 
-    token = create_access_token(subject=analyst_user.user.email)
+    token = create_access_token(
+        subject=analyst_user.user.email,
+        user_id=analyst_user.user.id,
+        role=analyst_user.user.role.value,
+    )
     return get_auth_headers(token)
 
 
@@ -299,7 +307,11 @@ def analyst_token(analyst_user: TestUserData) -> dict[str, str]:
 def viewer_token(viewer_user: TestUserData) -> dict[str, str]:
     """Create authorization headers for the viewer user."""
 
-    token = create_access_token(subject=viewer_user.user.email)
+    token = create_access_token(
+        subject=viewer_user.user.email,
+        user_id=viewer_user.user.id,
+        role=viewer_user.user.role.value,
+    )
     return get_auth_headers(token)
 
 
