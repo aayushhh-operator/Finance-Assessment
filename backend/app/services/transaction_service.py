@@ -66,8 +66,6 @@ def list_transactions(db: Session, filters: TransactionFilterParams, current_use
     count_query = select(func.count()).select_from(Transaction).where(_active_transaction_condition())
 
     conditions = []
-    if current_user.role == UserRole.viewer:
-        conditions.append(Transaction.user_id == current_user.id)
     if filters.type:
         conditions.append(Transaction.type == filters.type)
     if filters.category:
@@ -113,8 +111,7 @@ def get_summary(db: Session, current_user: User) -> SummaryResponse:
         func.coalesce(func.sum(case((Transaction.type == TransactionType.expense, Transaction.amount), else_=0)), 0),
         func.count(Transaction.id),
     )
-    if condition is not None:
-        query = query.where(condition)
+    query = query.where(condition)
 
     total_income, total_expense, count = db.execute(query).one()
     total_income = Decimal(total_income)
@@ -135,8 +132,7 @@ def get_category_breakdown(db: Session, current_user: User) -> CategoryBreakdown
         func.coalesce(func.sum(Transaction.amount), 0).label("total"),
         func.count(Transaction.id).label("count"),
     ).group_by(Transaction.category, Transaction.type).order_by(func.sum(Transaction.amount).desc())
-    if condition is not None:
-        query = query.where(condition)
+    query = query.where(condition)
 
     rows = db.execute(query).all()
     grouped: dict[str, list] = defaultdict(list)
@@ -157,8 +153,7 @@ def get_monthly_trends(db: Session, current_user: User, year: int | None = None)
 
     conditions = []
     scope = _dashboard_scope_condition(current_user)
-    if scope is not None:
-        conditions.append(scope)
+    conditions.append(scope)
     if year is not None:
         conditions.append(extract("year", Transaction.date) == year)
     if conditions:
@@ -185,8 +180,7 @@ def get_recent_transactions(db: Session, current_user: User, limit: int = 10) ->
         Transaction.date.desc(), Transaction.created_at.desc()
     ).limit(limit)
     condition = _dashboard_scope_condition(current_user)
-    if condition is not None:
-        query = query.where(condition)
+    query = query.where(condition)
 
     transactions = list(db.scalars(query))
     return [

@@ -136,7 +136,7 @@ async def test_login_inactive_user_returns_400(client: AsyncClient, db_session) 
 
 
 async def test_token_contains_valid_claims(client: AsyncClient, viewer_user: TestUserData, decode_jwt) -> None:
-    """Returned JWT tokens should include the subject and role claims."""
+    """Returned JWT tokens should include the subject and expiration claims."""
 
     response = await client.post("/api/auth/login", data=login_payload(viewer_user.user.email, viewer_user.password))
 
@@ -144,7 +144,6 @@ async def test_token_contains_valid_claims(client: AsyncClient, viewer_user: Tes
     token = response.json()["access_token"]
     claims = decode_jwt(token)
     assert claims["sub"] == viewer_user.user.email, "JWT subject should be the user email"
-    assert claims["role"] == viewer_user.user.role.value, "JWT role claim should match the user role"
     assert "exp" in claims, "JWT should contain an expiration claim"
 
 
@@ -153,7 +152,6 @@ async def test_expired_token_returns_401(client: AsyncClient, viewer_user: TestU
 
     expired_token = create_access_token(
         subject=viewer_user.user.email,
-        role=viewer_user.user.role.value,
         expires_delta=timedelta(minutes=-5),
     )
 

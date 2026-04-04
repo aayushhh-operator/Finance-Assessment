@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -35,9 +34,5 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user account")
 
-    access_token = create_access_token(
-        subject=user.email,
-        role=user.role.value,
-        expires_delta=timedelta(minutes=30),
-    )
+    access_token = create_access_token(subject=user.email)
     return Token(access_token=access_token)

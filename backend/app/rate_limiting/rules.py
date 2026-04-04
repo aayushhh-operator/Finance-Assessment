@@ -113,6 +113,8 @@ CHANGE_USER_STATUS_LIMIT = RateLimitRule(
     window_seconds=60,
 )
 
+# Documentation-oriented registry for route coverage. Runtime code uses the
+# individual rule constants directly.
 RATE_LIMIT_RULES = {
     "POST /api/auth/login": LOGIN_LIMIT,
     "POST /api/auth/register": REGISTER_LIMIT,
