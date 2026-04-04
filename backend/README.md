@@ -203,6 +203,11 @@ For automated tests, the shared storage exposes a `reset()` method so a test can
 - `analyst`: can read all transactions and system-wide dashboards, but cannot create, update, or delete.
 - `admin`: full access to users and transactions. Dashboard summary follows the requested spec and returns personal data, while analysts get system-wide data.
 
+## Authentication Notes
+
+- **Bearer JWT only:** `POST /api/auth/login` returns JSON `{ "access_token": "...", "token_type": "bearer" }`. Call protected routes with `Authorization: Bearer <access_token>`. This API does **not** set cookies or HttpOnly session cookies on login.
+- **Registration payload:** `POST /api/auth/register` accepts `UserCreate`: `email`, `password`, optional `full_name`, and optional `role` (`viewer`, `analyst`, or `admin`), defaulting to `viewer` if omitted. The server stores the `role` sent in the body when present. That behavior is convenient for demos and local testing; a production API would typically force self-registration to `viewer` and allow only admins to assign elevated roles.
+
 ## Assumptions
 
 1. Users cannot deactivate themselves.
@@ -214,7 +219,8 @@ For automated tests, the shared storage exposes a `reset()` method so a test can
 7. Viewers can only access their own records.
 8. Analysts are read-only across system data.
 9. Only admins can create, update, or delete transactions.
-10. JWT tokens expire after 30 minutes.
+10. JWT tokens expire after 30 minutes (see `ACCESS_TOKEN_EXPIRE_MINUTES` in settings).
+11. Clients authenticate with Bearer tokens only; cookie-based sessions are not implemented.
 
 ## Production Considerations
 
@@ -274,6 +280,18 @@ Run with coverage:
 ```bash
 pytest --cov=app tests/
 ```
+
+### Security Scanning
+
+The backend has been scanned with Bandit against `app/` and `seed_data.py`.
+
+Example command:
+
+```bash
+python -m bandit -r app seed_data.py -f txt
+```
+
+At the time of the last scan, Bandit reported no medium- or high-severity findings in the backend application code. This is a useful baseline, but it should not be treated as a guarantee that the system is fully secure for every deployment. Production use still requires proper secret management, environment hardening, dependency maintenance, and ongoing security review.
 
 Show print statements:
 

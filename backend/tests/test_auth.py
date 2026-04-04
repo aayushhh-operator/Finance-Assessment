@@ -99,6 +99,7 @@ async def test_login_success_returns_token(client: AsyncClient, viewer_user: Tes
     payload = response.json()
     assert payload["token_type"] == "bearer", "Token type should be bearer"
     assert payload["access_token"], "Access token should be present in the login response"
+    assert "finance_access_token=" in response.headers.get("set-cookie", ""), "Login should set an auth cookie"
 
 
 @pytest.mark.parametrize(

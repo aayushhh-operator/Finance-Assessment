@@ -368,7 +368,7 @@ function renderRegisterForm() {
       </div>
       <div class="field span-6">
         <label for="register-full-name">Full name</label>
-        <input id="register-full-name" name="full_name" type="text" maxlength="255" />
+        <input id="register-full-name" name="full_name" type="text" maxlength="255" autocomplete="name" />
         <div class="field-error" data-error-for="full_name"></div>
       </div>
       <div class="field span-6">
