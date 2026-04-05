@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: finance-backend-db
+    environment:
+      POSTGRES_DB: finance_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finance_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: finance-backend-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/finance_database
+      SECRET_KEY: change-me-to-a-long-random-secret-key-with-32-plus-chars
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      API_V1_PREFIX: /api
+      PROJECT_NAME: Finance Backend API
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_WAIT_TIMEOUT: 60
+      RUN_SEED_DATA: "true"
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

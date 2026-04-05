@@ -1,6 +1,6 @@
 """add transaction performance indexes
 
-Revision ID: 002_add_transaction_performance_indexes
+Revision ID: 002_tx_perf_indexes
 Revises: 001_initial_schema
 Create Date: 2026-04-05 00:05:00
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "002_add_transaction_performance_indexes"
+revision = "002_tx_perf_indexes"
 down_revision = "001_initial_schema"
 branch_labels = None
 depends_on = None
