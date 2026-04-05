@@ -5,8 +5,9 @@ Revises:
 Create Date: 2026-04-05 00:00:00
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.dialects import postgresql
 
 
 revision = "001_initial_schema"
@@ -14,13 +15,36 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-user_role = sa.Enum("viewer", "analyst", "admin", name="user_role")
-transaction_type = sa.Enum("income", "expense", name="transaction_type")
+# create_type=False: types are created explicitly below (idempotent). Avoids SQLAlchemy
+# emitting CREATE TYPE again during op.create_table (duplicate) and matches DBs that
+# already have these enums from a previous partial migration.
+user_role = postgresql.ENUM(
+    "viewer", "analyst", "admin", name="user_role", create_type=False
+)
+transaction_type = postgresql.ENUM(
+    "income", "expense", name="transaction_type", create_type=False
+)
 
 
 def upgrade() -> None:
-    user_role.create(op.get_bind(), checkfirst=True)
-    transaction_type.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE user_role AS ENUM ('viewer', 'analyst', 'admin');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
+    op.execute(
+        """
+        DO $$ BEGIN
+            CREATE TYPE transaction_type AS ENUM ('income', 'expense');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+        """
+    )
 
     op.create_table(
         "users",
@@ -72,5 +96,5 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
 
-    transaction_type.drop(op.get_bind(), checkfirst=True)
-    user_role.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS transaction_type")
+    op.execute("DROP TYPE IF EXISTS user_role")

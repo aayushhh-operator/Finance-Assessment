@@ -42,6 +42,33 @@ uvicorn app.main:app --reload
 python seed_data.py
 ```
 
+## Docker
+
+Run the backend and PostgreSQL together from the repository root:
+
+```bash
+docker compose up --build
+```
+
+What the backend container does on startup:
+
+- waits for PostgreSQL to accept connections
+- runs `alembic upgrade head`
+- runs `python seed_data.py` when `RUN_SEED_DATA=true`
+- starts `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+
+Useful commands:
+
+```bash
+docker compose up --build -d
+docker compose logs -f backend
+docker compose exec backend alembic upgrade head
+docker compose exec backend python seed_data.py
+docker compose down
+```
+
+To skip seeding, set `RUN_SEED_DATA=false` for the `backend` service in `docker-compose.yml`.
+
 ## Environment Variables
 
 ```env
